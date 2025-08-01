@@ -2,17 +2,20 @@ resources:
   accelerators: MI250:8
   cpus: 32+
   memory: 256+
-  image_id: motif_image
+  image_id: rocm/pytorch-training:v25.5
 
 setup:
+  pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.3
   pip install kernels transformers -U
 
 run: |
+  ARCH_STRING=$(rocminfo | grep 'Name:' | grep -o 'gfx9[0-9a-z]*' | head -n 1)
+  GPU_ARCHS=$ARCH_STRING pip install flash-attn==2.8.0.post2 --no-build-isolation
+  cd /workspace && git clone https://github.com/MotifTechnologies/torchtitan_public.git -b open/torchtitan-train
 
   TORCHTITAN_DIR="/workspace/torchtitan_public"
   echo "Torchtitan directory path: $TORCHTITAN_DIR"
   cd $TORCHTITAN_DIR
-  git checkout torchtitan-train
 
   ### dependency
   pip install -r requirements.txt
@@ -72,7 +75,6 @@ run: |
   # [training]
   update_config_param "local_batch_size" ${LOCAL_BATCH_SIZE} $CONFIG_FILE
   update_config_param "global_batch_size" ${GLOBAL_BATCH_SIZE} $CONFIG_FILE
-
 
   ### run  
   CONFIG_FILE=$CONFIG_FILE bash run_train_skypilot.sh
