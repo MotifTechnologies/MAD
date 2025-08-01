@@ -12,6 +12,7 @@ run: |
   TORCHTITAN_DIR="/workspace/torchtitan_public"
   echo "Torchtitan directory path: $TORCHTITAN_DIR"
   cd $TORCHTITAN_DIR
+  git checkout torchtitan-train
 
   ### dependency
   pip install -r requirements.txt
