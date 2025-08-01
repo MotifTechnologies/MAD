@@ -4,11 +4,6 @@ resources:
   memory: 256+
   image_id: motif_image
 
-envs:
-  ALLOW_ALL_RANKS_OUTPUT: 0
-  NCCL_NET_GDR_LEVEL: LOC
-  HF_TOKEN: <huggingface-token> # modify this!!!!
-
 setup:
   pip install kernels transformers -U
 

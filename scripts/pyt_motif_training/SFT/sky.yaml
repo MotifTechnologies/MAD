@@ -5,15 +5,11 @@ resources:
   image_id: rocm/pytorch-training:v25.5
 setup:
   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.3
-  GPU_ARCHS=“gfx90a” pip install flash-attn==2.8.0.post2 --no-build-isolation
   pip install accelerate transformers==4.51.3 datasets loguru tqdm
-envs:
-  ALLOW_ALL_RANKS_OUTPUT: 0
-  NCCL_NET_GDR_LEVEL: LOC
-  HF_TOKEN: <huggingface-token> # modify this!!!!
 
 run: |
-  env | grep -i NCCL
+  ARCH_STRING=$(rocminfo | grep 'Name:' | grep -o 'gfx9[0-9a-z]*' | head -n 1)
+  GPU_ARCHS=$ARCH_STRING pip install flash-attn==2.8.0.post2 --no-build-isolation
 
   ### clone MAD repository
   git clone https://github.com/MotifTechnologies/MAD.git
