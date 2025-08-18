@@ -1,7 +1,7 @@
 resources:
   accelerators: MI300:1
-  cpus: 32+
-  memory: 256+
+  cpus: 16+
+  memory: 200+
   image_id: rocm/pytorch-training:v25.6
 setup:
   pip install accelerate transformers==4.51.3 datasets loguru tqdm
