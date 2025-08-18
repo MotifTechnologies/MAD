@@ -1,15 +1,12 @@
 resources:
-  accelerators: MI250:8
+  accelerators: MI300:1
   cpus: 32+
   memory: 256+
-  image_id: rocm/pytorch-training:v25.5
+  image_id: rocm/pytorch-training:v25.6
 setup:
-  pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.3
   pip install accelerate transformers==4.51.3 datasets loguru tqdm
 
 run: |
-  ARCH_STRING=$(rocminfo | grep 'Name:' | grep -o 'gfx9[0-9a-z]*' | head -n 1)
-  GPU_ARCHS=$ARCH_STRING pip install flash-attn==2.8.0.post2 --no-build-isolation
 
   ### clone MAD repository
   git clone https://github.com/MotifTechnologies/MAD.git
