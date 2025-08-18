@@ -3,6 +3,7 @@ import os
 from functools import partial
 
 import torch
+from time import perf_counter
 from datasets import load_dataset
 from loguru import logger
 from torch.optim import AdamW
@@ -15,7 +16,11 @@ from accelerate import Accelerator
 def collate_fn(samples, tokenizer):
     inp, attn_mask = [], []
     for x in samples:
-        message = [{"role": "system", "content": "you are an helpful assistant"}] + x['context']
+        message = [
+            {"role": "system", "content": "you are an helpful assistant"},
+            {"role": "user", "content": x["input"]},
+            {"role": "assistant", "content": x["output"]},
+        ]
         chat = tokenizer.apply_chat_template(message, tokenize=False)
         single_batch = tokenizer(
             chat,
@@ -35,27 +40,21 @@ def main(args):
 
     # this demo will use 100 samples of origin data
     # downloading the dataset will consume about 2.5 gb of your storage
-    train_dataset = load_dataset("nvidia/HelpSteer3", split="train")
+    train_dataset = load_dataset("nvidia/AceReason-1.1-SFT", split="train[:100]")
     total_iters = len(train_dataset) // (args.batchsize * accelerator.state.num_processes)
 
     # loading model
-    # due to tie-weights, you may see logs like below(which can be ignored, in progress)
-    #    Some weights of MotifForCausalLM were not initialized from the model checkpoint at Motif-Technologies/Motif-2.6B and are newly initialized: ['lm_head.weight']
-    #    You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
     model = AutoModelForCausalLM.from_pretrained(
-        "Motif-Technologies/Motif-2.6B",
+        "Motif-Technologies/Motif-2.6b",
         trust_remote_code=True,
-        _attn_implementation="flash_attention_2",  # also supports flash_attention_2, install if interested
-        torch_dtype="bfloat16",  # used bfloat16 for 1-gpu MI250 budget, but you are free to use float32
-        device_map="cpu"
-    )
-    model.train()
+        _attn_implementation="flash_attention_2",
+        device_map="cpu",
+    ).to(torch.bfloat16)
+    model = model.train()
 
     # loading tokenizer
-    # maybe you want to apply your own chat template here, for example
-    # tokenizer.chat_template = "some_jinja_template"
     tokenizer = AutoTokenizer.from_pretrained(
-        "Motif-Technologies/Motif-2.6B",
+        "Motif-Technologies/Motif-2.6b",
         trust_remote_code=True,
     )
 
@@ -88,6 +87,8 @@ def main(args):
 
     for epoch in range(args.epochs):
         for idx, batch in enumerate(dataloader):
+            if accelerator.is_main_process:
+                st = perf_counter()
             loss = model(
                 input_ids=batch[0],
                 labels=batch[0],
@@ -99,11 +100,11 @@ def main(args):
             optimizer.step()
             lr_scheduler.step()
             optimizer.zero_grad(set_to_none=True)
-
+            
             if accelerator.is_main_process:
+                total_time = perf_counter() - st
                 logger.info(
-                    f"TRAIN | {epoch + 1}/{args.epochs + 1} epochs | \
-                        {idx + 1}/{total_iters} steps | loss: {loss.item()} | lr: {lr_scheduler.get_lr()[0]}"
+                        f"TRAIN | {epoch + 1}/{args.epochs} epochs | {(batch[0].numel() / total_time):<10.2f} TPS | {(idx + 1):<3}/{total_iters} steps | loss: {loss.detach().item():.5f} | lr: {lr_scheduler.get_lr()[0]}"
                 )
 
             accelerator.wait_for_everyone()
@@ -116,8 +117,8 @@ if __name__ == "__main__":
     # define argument parser
     parser = argparse.ArgumentParser()
     parser.add_argument("--epochs", "-e", type=int, default=1)
-    parser.add_argument("--batchsize", "-b", type=int, default=2)
-    parser.add_argument("--lr", "-l", type=float, default=5e-5)
+    parser.add_argument("--batchsize", "-b", type=int, default=4)
+    parser.add_argument("--lr", "-l", type=float, default=1e-5)
     args = parser.parse_args()
 
     main(args)
