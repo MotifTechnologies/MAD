@@ -10,8 +10,8 @@ run: |
 
   ### clone MAD repository
   git clone https://github.com/MotifTechnologies/MAD.git
-  cd MAD/scripts/pyt_motif_training/SFT
+  cd MAD
   git checkout add_motif
-
+  cd scripts/pyt_motif_training/SFT
   ### run!
   accelerate launch --config_file accelerate_config_1node.yaml train_motif.py
