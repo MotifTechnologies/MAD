@@ -1,16 +1,13 @@
 resources:
-  accelerators: MI250:8
-  cpus: 32+
-  memory: 256+
-  image_id: rocm/pytorch-training:v25.5
+  accelerators: MI300:1
+  cpus: 16+
+  memory: 200+
+  image_id: rocm/pytorch-training:v25.6
 
 setup:
-  pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.3
   pip install kernels transformers -U
 
 run: |
-  ARCH_STRING=$(rocminfo | grep 'Name:' | grep -o 'gfx9[0-9a-z]*' | head -n 1)
-  GPU_ARCHS=$ARCH_STRING pip install flash-attn==2.8.0.post2 --no-build-isolation
   cd /workspace && git clone https://github.com/MotifTechnologies/torchtitan_public.git -b open/torchtitan-train
 
   TORCHTITAN_DIR="/workspace/torchtitan_public"
@@ -37,8 +34,6 @@ run: |
     fi
   }
 
-  GLOBAL_BATCH_SIZE=256
-  GRAD_ACCUMULATION_STEPS=32
   CONFIG_FILE="./torchtitan/models/motif/train_configs/motif_2.6b.toml" 
 
   update_config_param "warmup_steps" 10 $CONFIG_FILE
@@ -62,15 +57,8 @@ run: |
   update_config_param "precompute_float8_dynamic_scale_for_fsdp" false $CONFIG_FILE
   update_config_param "force_recompute_fp8_weight_in_bwd" false $CONFIG_FILE
 
-  ### Check divisibility
-  N_PROC=$((${SKYPILOT_NUM_GPUS_PER_NODE} * ${SKYPILOT_NUM_NODES}))
-  if (( GLOBAL_BATCH_SIZE % (N_PROC * GRAD_ACCUMULATION_STEPS) == 0 )); then
-    LOCAL_BATCH_SIZE=$(( GLOBAL_BATCH_SIZE / (N_PROC * GRAD_ACCUMULATION_STEPS) ))
-  else
-    echo "[Error] GLOBAL_BATCH_SIZE (${GLOBAL_BATCH_SIZE}) is not divisible by N_PROC (${N_PROC})"
-    exit 1
-  fi
-
+  GLOBAL_BATCH_SIZE=256
+  LOCAL_BATCH_SIZE=8
   echo "Training model with batch size = $GLOBAL_BATCH_SIZE"
   # [training]
   update_config_param "local_batch_size" ${LOCAL_BATCH_SIZE} $CONFIG_FILE
