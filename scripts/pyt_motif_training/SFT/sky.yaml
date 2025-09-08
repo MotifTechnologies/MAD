@@ -1,9 +1,10 @@
 resources:
   cloud: kubernetes
   accelerators: MI250:1
-  cpus: 16+
-  memory: 200+
-  image_id: harbor.harbor.svc.cluster.local:40080/modelco/pytorch-training:v25.6
+  cpus: 1
+  memory: 1
+  image_id: harbor.harbor.svc.cluster.local:40080/modelco/rocm/pytorch-training:v25.6
+num_nodes: 1
 setup:
   pip install accelerate transformers==4.51.3 datasets loguru tqdm kernels
 config:
