@@ -36,10 +36,12 @@ def collate_fn(samples, tokenizer):
 
     return torch.concatenate(inp, dim=0), torch.concatenate(attn_mask, dim=0)
 
-def model_patcher(model: torch.nn.Module) -> torch.nn.Module:
+def model_patcher(model) -> torch.nn.Module:
     for child_name, child_module in model.named_children():
-        if 'act_fn' in child_name:
+        if any([target in child_name for target in ["act_fn"]]):
             setattr(model, child_name, activation.layers.PolyNorm(eps=1e-6))
+        elif any([target in child_name for target in ["subln", "input_layernorm", "post_attention_layernorm", "norm"]]):
+            setattr(model, child_name, activation.layers.RMSNorm(eps=1e-6))
         else:
             model_patcher(child_module)
 

@@ -1,10 +1,25 @@
 resources:
-  accelerators: MI300:1
+  cloud: kubernetes
+  accelerators: MI250:1
   cpus: 16+
   memory: 200+
-  image_id: rocm/pytorch-training:v25.6
+  image_id: harbor.harbor.svc.cluster.local:40080/modelco/pytorch-training:v25.6
 setup:
-  pip install accelerate transformers==4.51.3 datasets loguru tqdm
+  pip install accelerate transformers==4.51.3 datasets loguru tqdm kernels
+config:
+  kubernetes:
+    pod_config:
+      spec:
+        imagePullSecrets:
+          - name: harbor-cfg
+        containers:
+          - volumeMounts:
+              - mountPath: /motiftech/model
+                name: nfs-vast
+        volumes:
+          - name: nfs-vast
+            persistentVolumeClaim:
+              claimName: nfs-pvc
 
 run: |
 
