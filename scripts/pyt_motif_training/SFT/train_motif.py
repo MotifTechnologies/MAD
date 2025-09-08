@@ -11,7 +11,9 @@ from torch.optim.lr_scheduler import LinearLR
 from torch.utils.data import DataLoader
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from accelerate import Accelerator
+from kernels import get_kernel
 
+activation = get_kernel("motif-technologies/activation")
 
 def collate_fn(samples, tokenizer):
     inp, attn_mask = [], []
@@ -34,6 +36,13 @@ def collate_fn(samples, tokenizer):
 
     return torch.concatenate(inp, dim=0), torch.concatenate(attn_mask, dim=0)
 
+def model_patcher(model: torch.nn.Module) -> torch.nn.Module:
+    for child_name, child_module in model.named_children():
+        if 'act_fn' in child_name:
+            setattr(model, child_name, activation.layers.PolyNorm(eps=1e-6))
+        else:
+            model_patcher(child_module)
+
 
 def main(args):
     accelerator = Accelerator()
@@ -50,6 +59,9 @@ def main(args):
         _attn_implementation="flash_attention_2",
         device_map="cpu",
     ).to(torch.bfloat16)
+
+    if args.use_kernels:
+        model = model_patcher(model)
     model = model.train()
 
     # loading tokenizer
@@ -119,6 +131,7 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", "-e", type=int, default=1)
     parser.add_argument("--batchsize", "-b", type=int, default=4)
     parser.add_argument("--lr", "-l", type=float, default=1e-5)
+    parser.add_argument("--use-kernels", "-u", action='store_true')
     args = parser.parse_args()
 
     main(args)
