@@ -35,7 +35,10 @@ def collate_fn(samples, tokenizer):
 def model_patcher(model) -> torch.nn.Module:
     for child_name, child_module in model.named_children():
         if any([target in child_name for target in ["act_fn"]]):
-            setattr(model, child_name, activation.layers.PolyNorm(eps=child_module.eps))
+            layer = activation.layers.PolyNorm(eps=child_module.eps)
+            layer.weight.data = child_module.weight.data.clone()
+            layer.bias.data = child_module.bias.data.clone()
+            setattr(model, child_name, layer)
         elif any([target in child_name for target in ["subln", "input_layernorm", "post_attention_layernorm", "norm"]]):
             layer = activation.layers.RMSNorm(child_module.weight.shape[-1], eps=child_module.variance_epsilon)
             layer.weight.data = child_module.weight.data.clone()
