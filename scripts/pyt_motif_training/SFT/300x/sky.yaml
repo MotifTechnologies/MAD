@@ -15,4 +15,4 @@ run: |
   git checkout add_motif
   cd scripts/pyt_motif_training/SFT
   ### run!
-  accelerate launch --config_file ./300x/accelerate_config_1node.yaml train_motif.py
+  accelerate launch --config_file accelerate_config_1node.yaml train_motif.py
