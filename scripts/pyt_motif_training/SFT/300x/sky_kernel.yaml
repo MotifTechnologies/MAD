@@ -1,0 +1,18 @@
+resources:
+  cloud: kubernetes
+  accelerators: MI300:1
+  cpus: 16+
+  memory: 200+
+  image_id: rocm/pytorch-training:v25.6
+setup:
+  pip install accelerate transformers==4.51.3 datasets loguru tqdm
+
+run: |
+
+  ### clone MAD repository
+  git clone https://github.com/MotifTechnologies/MAD.git
+  cd MAD
+  git checkout add_motif
+  cd scripts/pyt_motif_training/SFT
+  ### run!
+  accelerate launch --config_file ./300x/accelerate_config_1node.yaml train_motif.py -u

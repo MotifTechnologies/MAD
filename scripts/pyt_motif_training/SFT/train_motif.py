@@ -51,12 +51,12 @@ def main(args):
     total_iters = len(train_dataset) // (args.batchsize * accelerator.state.num_processes)
 
     # loading model
-model = AutoModelForCausalLM.from_pretrained(
-    "Motif-Technologies/Motif-2.6b",
-    trust_remote_code=True,
-    _attn_implementation="flash_attention_2",
-    device_map="cpu",
-).to(torch.bfloat16)
+    model = AutoModelForCausalLM.from_pretrained(
+        "Motif-Technologies/Motif-2.6b",
+        trust_remote_code=True,
+        _attn_implementation="flash_attention_2",
+        device_map="cpu",
+    ).to(torch.bfloat16)
 
     if args.use_kernels:
         model = model_patcher(model)

@@ -1,0 +1,22 @@
+resources:
+  cloud: kubernetes
+  accelerators: MI250:1
+  cpus: 16+
+  memory: 200+
+  image_id: rocm/pytorch-training:v25.2
+num_nodes: 1
+setup:
+  pip install accelerate transformers==4.51.3 datasets loguru tqdm
+  pip install torch==2.7.1 torchvision==0.22.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/rocm6.3
+  MAX_JOBS=112 pip install flash-attn --no-build-isolation --no-cache
+  pip install -U accelerate
+
+run: |
+
+  ### clone MAD repository
+  git clone https://github.com/MotifTechnologies/MAD.git
+  cd MAD
+  git checkout add_motif
+  cd scripts/pyt_motif_training/SFT
+  ### run!
+  accelerate launch --config_file ./250/accelerate_config_1node.yaml train_motif.py -u
