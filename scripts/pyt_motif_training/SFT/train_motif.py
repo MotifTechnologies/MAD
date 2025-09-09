@@ -39,7 +39,9 @@ def model_patcher(model) -> torch.nn.Module:
         elif any([target in child_name for target in ["subln", "input_layernorm", "post_attention_layernorm", "norm"]]):
             setattr(model, child_name, activation.layers.RMSNorm(child_module.weight.shape[-1], eps=1e-6))
         else:
-            model_patcher(child_module)
+            model = model_patcher(child_module)
+    
+    return model
 
 
 def main(args):
