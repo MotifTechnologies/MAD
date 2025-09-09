@@ -37,7 +37,7 @@ def model_patcher(model) -> torch.nn.Module:
         if any([target in child_name for target in ["act_fn"]]):
             setattr(model, child_name, activation.layers.PolyNorm(eps=1e-6))
         elif any([target in child_name for target in ["subln", "input_layernorm", "post_attention_layernorm", "norm"]]):
-            setattr(model, child_name, activation.layers.RMSNorm(eps=1e-6))
+            setattr(model, child_name, activation.layers.RMSNorm(child_module.shape[-1], eps=1e-6))
         else:
             model_patcher(child_module)
 
@@ -51,12 +51,12 @@ def main(args):
     total_iters = len(train_dataset) // (args.batchsize * accelerator.state.num_processes)
 
     # loading model
-    model = AutoModelForCausalLM.from_pretrained(
-        "Motif-Technologies/Motif-2.6b",
-        trust_remote_code=True,
-        _attn_implementation="flash_attention_2",
-        device_map="cpu",
-    ).to(torch.bfloat16)
+model = AutoModelForCausalLM.from_pretrained(
+    "Motif-Technologies/Motif-2.6b",
+    trust_remote_code=True,
+    _attn_implementation="flash_attention_2",
+    device_map="cpu",
+).to(torch.bfloat16)
 
     if args.use_kernels:
         model = model_patcher(model)
