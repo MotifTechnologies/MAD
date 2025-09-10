@@ -6,11 +6,11 @@ resources:
   image_id: rocm/pytorch-training:v25.2
 num_nodes: 1
 setup:
-  pip install accelerate transformers==4.51.3 datasets loguru tqdm
+  pip install accelerate transformers==4.51.3 datasets loguru tqdm kernels
+run: |
   pip install torch==2.7.1 torchvision==0.22.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/rocm6.3
   pip install -U accelerate
-
-run: |
+  pip uninstall flash-attn -y
   MAX_JOBS=112 pip install flash-attn --no-build-isolation --no-cache
   ### clone MAD repository
   git clone https://github.com/MotifTechnologies/MAD.git

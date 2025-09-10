@@ -5,7 +5,7 @@ resources:
   memory: 200+
   image_id: rocm/pytorch-training:v25.6
 setup:
-  pip install accelerate transformers==4.51.3 datasets loguru tqdm
+  pip install accelerate transformers==4.51.3 datasets loguru tqdm kernels
 
 run: |
 
